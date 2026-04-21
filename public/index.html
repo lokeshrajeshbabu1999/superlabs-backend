@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperLabs Shop | Backend Developer Task</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1 onclick="showView('browsing')" style="cursor:pointer">SuperLabs Shop</h1>
+            <nav class="nav-tabs">
+                <button class="btn btn-outline" id="nav-shop" onclick="showView('browsing')">Shop</button>
+                <button class="btn btn-outline" id="nav-admin" onclick="showView('admin')">Admin Dashboard</button>
+            </nav>
+        </header>
+
+        <!-- Browsing View -->
+        <main id="browsing-view">
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search by name, description, or SKU..."
+                    onkeyup="handleSearch(event)">
+                <button class="btn btn-primary" onclick="loadProducts(1)">Search</button>
+            </div>
+            <div id="product-list" class="product-grid">
+                <!-- Products dynamically loaded here -->
+            </div>
+            <div id="pagination" class="pagination">
+                <!-- Pagination buttons here -->
+            </div>
+        </main>
+
+        <!-- Product Detail View -->
+        <section id="detail-view" style="display:none">
+            <button class="btn btn-outline" style="margin-bottom:2rem" onclick="showView('browsing')">← Back to
+                Catalog</button>
+            <div id="detail-content"></div>
+        </section>
+
+        <!-- Admin View -->
+        <main id="admin-view" class="admin-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem">
+                <div>
+                    <h2 style="font-size:2rem">Admin Dashboard</h2>
+                    <p style="color:var(--text-muted)">Manage your product catalog and inventory</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal('create')">+ Add New Product</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Info</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Category</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-product-table">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </main>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem">
+                <h2 id="modal-title" style="font-size:1.5rem">New Product</h2>
+                <button class="btn btn-outline" style="padding:0.25rem 0.5rem" onclick="closeModal()">✕</button>
+            </div>
+            <form id="product-form" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="form-id">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+                    <div class="form-group">
+                        <label>SKU (Must be unique)</label>
+                        <input type="text" id="form-sku" required placeholder="e.g. PROD-123">
+                    </div>
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" id="form-name" required placeholder="e.g. Wireless Mouse">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="form-desc"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius)"
+                        rows="3" required placeholder="Describe the product features..."></textarea>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem">
+                    <div class="form-group">
+                        <label>Price (₹)</label>
+                        <input type="number" step="0.01" id="form-price" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Level</label>
+                        <input type="number" id="form-stock" required value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <input type="text" id="form-category" placeholder="e.g. Electronics">
+                    </div>
+                </div>
+                <div class="form-group" style="border-top:1px solid var(--border); padding-top:1.5rem; margin-top:0.5rem">
+                    <label>Product Image</label>
+                    <div style="display:flex; gap:1rem; align-items:center">
+                        <div style="flex:1">
+                            <input type="file" id="form-file" accept="image/*">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem">Upload from your computer</div>
+                        </div>
+                        <span style="color:var(--text-muted)">OR</span>
+                        <div style="flex:1">
+                            <input type="text" id="form-image" placeholder="Paste a direct image URL here...">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem">Use an existing web link</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:1rem; margin-top:2rem">
+                    <button type="submit" class="btn btn-primary" style="flex:1">Save Product</button>
+                    <button type="button" class="btn btn-outline" style="flex:1" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'browsing';
+
+        function getSafeImages(p) {
+            try {
+                // Handle case where images might be stored with single quotes or already be an array
+                let images = p.images;
+                if (typeof images === 'string') {
+                    // Replace single quotes with double quotes if needed for basic JSON parsing
+                    const processed = images.trim().replace(/'/g, '"');
+                    images = JSON.parse(processed);
+                }
+                return Array.isArray(images) ? images : ["https://via.placeholder.com/300"];
+            } catch (e) {
+                // If it's just a raw URL string, return it in an array
+                if (typeof p.images === 'string' && p.images.startsWith('http')) {
+                    return [p.images];
+                }
+                return ["https://via.placeholder.com/300"];
+            }
+        }
+
+        async function loadProducts(page = 1) {
+            const query = document.getElementById('search-input').value;
+            const res = await fetch(`/api/products?q=${query}&page=${page}&limit=6`);
+            const data = await res.json();
+
+            const list = document.getElementById('product-list');
+            if (data.products.length === 0) {
+                list.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted)">No products found matching your search.</div>`;
+            } else {
+                list.innerHTML = data.products.map(p => {
+                    const firstImage = getSafeImages(p)[0];
+                    return `
+                        <div class="product-card" onclick="showDetail('${p.sku}')">
+                            <img src="${firstImage}" class="product-img" alt="${p.name}">
+                            <div class="product-info">
+                                <div class="product-category">${p.category || 'Standard'}</div>
+                                <div class="product-title">${p.name}</div>
+                                <div class="product-price">
+                                    ${p.discountedPrice ? `<span class="price-old">₹${p.price}</span>₹${p.discountedPrice}` : `₹${p.price}`}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            renderPagination(data.pagination);
+        }
+
+        function renderPagination(pg) {
+            const container = document.getElementById('pagination');
+            let html = '';
+            for (let i = 1; i <= pg.totalPages; i++) {
+                html += `<button class="btn ${i === pg.page ? 'btn-primary' : 'btn-outline'}" onclick="loadProducts(${i})">${i}</button>`;
+            }
+            container.innerHTML = html;
+        }
+
+        async function showDetail(sku) {
+            const res = await fetch(`/api/products/${sku}`);
+            if (!res.ok) return alert('Product details could not be loaded.');
+            const p = await res.json();
+
+            showView('detail');
+            const firstImage = getSafeImages(p)[0];
+            document.getElementById('detail-content').innerHTML = `
+                <div class="detail-grid">
+                    <img src="${firstImage}" style="width:100%; border-radius:12px; box-shadow:var(--shadow)">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+                            <div class="product-category" style="font-size:1rem">${p.category}</div>
+                            <span class="badge badge-stock">${p.stock > 0 ? 'In Stock' : 'Out of Stock'}</span>
+                        </div>
+                        <h2 style="font-size:2.5rem; margin-bottom:1rem; line-height:1.2">${p.name}</h2>
+                        <div class="product-price" style="font-size:2rem; margin-bottom:1.5rem">
+                            ${p.discountedPrice ? `<span class="price-old">₹${p.price}</span>₹${p.discountedPrice}` : `₹${p.price}`}
+                        </div>
+                        <p style="color:var(--text-muted); margin-bottom:2rem; font-size:1.125rem">${p.description}</p>
+                        
+                        <div style="padding:1.5rem; background:#f1f5f9; border-radius:12px; margin-bottom:2rem">
+                            <strong>SKU Reference:</strong> ${p.sku}<br>
+                            <strong>Available Inventory:</strong> ${p.stock} units
+                        </div>
+
+                        <h3>Customer Reviews (${p.reviews?.length || 0})</h3>
+                        <div style="margin-top:1.5rem">
+                            ${(p.reviews || []).map(r => `
+                                <div style="margin-bottom:1.5rem; padding:1.5rem; background:white; border:1px solid #e2e8f0; border-radius:12px">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
+                                        <strong>${r.reviewerName}</strong>
+                                        <span style="color:#fbbf24">★ ${r.rating}</span>
+                                    </div>
+                                    <p style="color:var(--text-main)">${r.comment}</p>
+                                </div>
+                            `).join('') || '<p style="color:var(--text-muted)">No reviews yet for this product.</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadAdmin() {
+            const res = await fetch('/api/admin/products');
+            const products = await res.json();
+            const table = document.getElementById('admin-product-table');
+            table.innerHTML = products.map(p => {
+                const firstImage = getSafeImages(p)[0];
+                return `
+                    <tr>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:1rem">
+                                <img src="${firstImage}" style="width:40px; height:40px; object-fit:cover; border-radius:4px">
+                                <div>
+                                    <div style="font-weight:700">${p.name}</div>
+                                    <div style="font-size:0.75rem; color:var(--text-muted)">${p.sku}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="font-weight:600">₹${p.price}</td>
+                        <td>${p.stock}</td>
+                        <td style="color:var(--text-muted)">${p.category}</td>
+                        <td style="text-align:right">
+                            <button class="btn btn-outline" style="padding:0.25rem 0.75rem" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})">Edit</button>
+                            <button class="btn btn-outline" style="padding:0.25rem 0.75rem; color:#ef4444; border-color:#fee2e2" onclick="deleteProduct(${p.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showView(view) {
+            currentView = view;
+            document.getElementById('browsing-view').style.display = view === 'browsing' ? 'block' : 'none';
+            document.getElementById('admin-view').style.display = view === 'admin' ? 'block' : 'none';
+            document.getElementById('detail-view').style.display = view === 'detail' ? 'block' : 'none';
+
+            document.getElementById('nav-shop').className = `btn ${view === 'browsing' ? 'btn-primary' : 'btn-outline'}`;
+            document.getElementById('nav-admin').className = `btn ${view === 'admin' ? 'btn-primary' : 'btn-outline'}`;
+
+            if (view === 'admin') loadAdmin();
+            if (view === 'browsing') loadProducts();
+        }
+
+        function handleSearch(e) {
+            if (e.key === 'Enter') loadProducts(1);
+        }
+
+        function openModal(mode, data = null) {
+            document.getElementById('product-modal').style.display = 'flex';
+            document.getElementById('modal-title').innerText = mode === 'create' ? 'Create New Product' : 'Update Product';
+            
+            // Clear hidden ID and file inputs manually as form.reset() doesn't always handle them
+            document.getElementById('form-id').value = '';
+            document.getElementById('form-file').value = ''; 
+            document.getElementById('product-form').reset();
+
+            if (data) {
+                document.getElementById('form-id').value = data.id;
+                document.getElementById('form-sku').value = data.sku;
+                document.getElementById('form-name').value = data.name;
+                document.getElementById('form-desc').value = data.description;
+                document.getElementById('form-price').value = data.price;
+                document.getElementById('form-stock').value = data.stock;
+                document.getElementById('form-category').value = data.category;
+                const imagesArr = JSON.parse(data.images || '[]');
+                document.getElementById('form-image').value = imagesArr[0] || '';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('product-modal').style.display = 'none';
+        }
+
+        function editProduct(p) {
+            openModal('edit', p);
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Are you sure you want to remove this product permanently?')) return;
+            try {
+                const res = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
+                if (res.ok) loadAdmin();
+                else alert('Failed to delete product.');
+            } catch (err) {
+                alert('Network error while deleting.');
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('form-file');
+            if (fileInput.files.length === 0) return null;
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            const res = await fetch('/api/admin/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) throw new Error('File upload failed');
+            const data = await res.json();
+            return data.imageUrl;
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-id').value;
+            
+            try {
+                let imageUrl = document.getElementById('form-image').value;
+                const uploadedUrl = await uploadFile();
+                if (uploadedUrl) imageUrl = uploadedUrl;
+
+                const data = {
+                    sku: document.getElementById('form-sku').value,
+                    name: document.getElementById('form-name').value,
+                    description: document.getElementById('form-desc').value,
+                    price: parseFloat(document.getElementById('form-price').value),
+                    stock: parseInt(document.getElementById('form-stock').value),
+                    category: document.getElementById('form-category').value || 'Uncategorized',
+                    images: [imageUrl || 'https://via.placeholder.com/300']
+                };
+
+                const url = id ? `/api/admin/products/${id}` : '/api/admin/products';
+                const method = id ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    closeModal();
+                    loadAdmin();
+                } else {
+                    const err = await res.json();
+                    alert(err.message || 'Validation error while saving product.');
+                }
+            } catch (err) {
+                alert('Network error while saving.');
+            }
+        }
+
+        // Initialize with products
+        loadProducts();
+    </script>
+</body>
+
+</html>
