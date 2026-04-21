@@ -12,8 +12,8 @@ const getAdminProducts = async (req, res) => {
     });
     res.json(products);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('FETCH ERROR:', error);
+    res.status(500).json({ message: 'Server Error', details: error.message });
   }
 };
 
@@ -46,8 +46,12 @@ const createProduct = async (req, res) => {
 
     res.status(201).json(product);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('CREATE ERROR:', error);
+    res.status(500).json({ 
+      message: 'Server Error', 
+      details: error.message, 
+      code: error.code 
+    });
   }
 };
 
@@ -77,11 +81,15 @@ const updateProduct = async (req, res) => {
 
     res.json(product);
   } catch (error) {
-    console.error(error);
+    console.error('UPDATE ERROR:', error);
     if (error.code === 'P2025') {
       return res.status(404).json({ message: 'Product not found' });
     }
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ 
+      message: 'Server Error', 
+      details: error.message, 
+      code: error.code 
+    });
   }
 };
 
@@ -98,11 +106,11 @@ const deleteProduct = async (req, res) => {
     res.json({ message: 'Product removed' });
     console.log('Product removed', id);
   } catch (error) {
-    console.error(error);
+    console.error('DELETE ERROR:', error);
     if (error.code === 'P2025') {
       return res.status(404).json({ message: 'Product not found' });
     }
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: 'Server Error', details: error.message });
   }
 };
 
@@ -118,8 +126,8 @@ const uploadProductImage = async (req, res) => {
     const imageUrl = `/uploads/${req.file.filename}`;
     res.json({ imageUrl });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('UPLOAD ERROR:', error);
+    res.status(500).json({ message: 'Server Error', details: error.message });
   }
 };
 
