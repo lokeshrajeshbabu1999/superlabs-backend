@@ -7,6 +7,7 @@
     "dev": "nodemon src/index.js",
     "seed": "node prisma/seed.js",
     "postinstall": "prisma generate",
+    "db:fix": "node scripts/fix-db.js",
     "build": "npm install && npx prisma generate && npx prisma migrate deploy",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
