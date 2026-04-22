@@ -91,10 +91,14 @@
                         style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius)"
                         rows="3" required placeholder="Describe the product features..."></textarea>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem">
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:1rem">
                     <div class="form-group">
                         <label>Price (₹)</label>
                         <input type="number" step="0.01" id="form-price" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Discount Price</label>
+                        <input type="number" step="0.01" id="form-discount" placeholder="Optional">
                     </div>
                     <div class="form-group">
                         <label>Stock Level</label>
@@ -246,11 +250,13 @@
                                 </div>
                             </div>
                         </td>
-                        <td style="font-weight:600">₹${p.price}</td>
+                        <td style="font-weight:600">
+                            ${p.discountedPrice ? `<span class="price-old" style="font-size:0.8rem; opacity:0.6; text-decoration:line-through; margin-right:5px">₹${p.price}</span>₹${p.discountedPrice}` : `₹${p.price}`}
+                        </td>
                         <td>${p.stock}</td>
                         <td style="color:var(--text-muted)">${p.category}</td>
                         <td style="text-align:right">
-                            <button class="btn btn-outline" style="padding:0.25rem 0.75rem" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})">Edit</button>
+                            <button class="btn btn-outline" style="padding:0.25rem 0.75rem" onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Edit</button>
                             <button class="btn btn-outline" style="padding:0.25rem 0.75rem; color:#ef4444; border-color:#fee2e2" onclick="deleteProduct(${p.id})">Delete</button>
                         </td>
                     </tr>
@@ -290,6 +296,7 @@
                 document.getElementById('form-name').value = data.name;
                 document.getElementById('form-desc').value = data.description;
                 document.getElementById('form-price').value = data.price;
+                document.getElementById('form-discount').value = data.discountedPrice || '';
                 document.getElementById('form-stock').value = data.stock;
                 document.getElementById('form-category').value = data.category;
                 const imagesArr = JSON.parse(data.images || '[]');
@@ -347,6 +354,7 @@
                     name: document.getElementById('form-name').value,
                     description: document.getElementById('form-desc').value,
                     price: parseFloat(document.getElementById('form-price').value),
+                    discountedPrice: document.getElementById('form-discount').value ? parseFloat(document.getElementById('form-discount').value) : null,
                     stock: parseInt(document.getElementById('form-stock').value),
                     category: document.getElementById('form-category').value || 'Uncategorized',
                     images: [imageUrl || 'https://via.placeholder.com/300']
