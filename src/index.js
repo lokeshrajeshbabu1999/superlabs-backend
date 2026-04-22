@@ -19,7 +19,7 @@ app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
 // Swagger Documentation
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+app.use('/api/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Routes
 app.use('/api/products', productRoutes);
