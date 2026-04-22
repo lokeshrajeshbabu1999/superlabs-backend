@@ -70,7 +70,46 @@ const getProductBySku = async (req, res) => {
   }
 };
 
+/**
+ * @desc Add a review for a product
+ * @route POST /api/products/:sku/reviews
+ */
+const addProductReview = async (req, res) => {
+  try {
+    const { sku } = req.params;
+    const { rating, comment, reviewerName } = req.body;
+
+    if (!rating || !comment || !reviewerName) {
+      return res.status(400).json({ message: 'Please provide rating, comment, and reviewer name' });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { sku },
+    });
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const review = await prisma.review.create({
+      data: {
+        productId: product.id,
+        rating: parseInt(rating),
+        comment,
+        reviewerName,
+      },
+    });
+
+    res.status(201).json(review);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductBySku,
+  addProductReview,
 };
+

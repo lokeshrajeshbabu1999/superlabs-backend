@@ -228,9 +228,59 @@
                                 </div>
                             `).join('') || '<p style="color:var(--text-muted)">No reviews yet for this product.</p>'}
                         </div>
+
+                        <div style="margin-top:3rem; padding-top:2rem; border-top:1px solid #e2e8f0">
+                            <h3 style="margin-bottom:1.5rem">Write a Review</h3>
+                            <form onsubmit="submitReview(event, '${p.sku}')" style="display:grid; gap:1rem">
+                                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1rem">
+                                    <div class="form-group">
+                                        <label>Your Name</label>
+                                        <input type="text" id="rev-name" required placeholder="John Doe">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Rating (1-5)</label>
+                                        <select id="rev-rating" required style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius)">
+                                            <option value="5">5 Stars</option>
+                                            <option value="4">4 Stars</option>
+                                            <option value="3">3 Stars</option>
+                                            <option value="2">2 Stars</option>
+                                            <option value="1">1 Star</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Comment</label>
+                                    <textarea id="rev-comment" required rows="3" placeholder="What did you think of the product?" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius)"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Review</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             `;
+        }
+
+        async function submitReview(e, sku) {
+            e.preventDefault();
+            const data = {
+                reviewerName: document.getElementById('rev-name').value,
+                rating: parseInt(document.getElementById('rev-rating').value),
+                comment: document.getElementById('rev-comment').value
+            };
+
+            const res = await fetch(`/api/products/${sku}/reviews`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                alert('Review submitted successfully!');
+                showDetail(sku); // Refresh the view
+            } else {
+                const err = await res.json();
+                alert(err.message || 'Failed to submit review.');
+            }
         }
 
         async function loadAdmin() {

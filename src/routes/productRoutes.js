@@ -4,7 +4,9 @@ const router = express.Router();
 const {
     getProducts,
     getProductBySku,
+    addProductReview,
 } = require('../controllers/productController');
+
 
 /**
  * @swagger
@@ -88,5 +90,50 @@ router.get('/', getProducts);
  *         description: Product not found
  */
 router.get('/:sku', getProductBySku);
+
+/**
+ * @swagger
+ * /api/products/{sku}/reviews:
+ *   post:
+ *     summary: Add a review for a product
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: sku
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The product SKU
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rating
+ *               - comment
+ *               - reviewerName
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 example: 5
+ *               comment:
+ *                 type: string
+ *                 example: "Excellent product, highly recommended!"
+ *               reviewerName:
+ *                 type: string
+ *                 example: "Jane Smith"
+ *     responses:
+ *       201:
+ *         description: Review created successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Product not found
+ */
+router.post('/:sku/reviews', addProductReview);
 
 module.exports = router;
